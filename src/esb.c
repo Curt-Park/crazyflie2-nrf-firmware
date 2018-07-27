@@ -29,6 +29,7 @@
 
 #include "esb.h"
 #include "pm.h"
+#include "led.h"
 
 #include <nrf.h>
 
@@ -41,6 +42,7 @@
 #define TXQ_LEN 16
 
 static bool isInit = true;
+bool in_ptx=false;
 
 static int channel = 2;
 static int datarate = esbDatarate2M;
@@ -170,7 +172,7 @@ static void setupTx(bool retry)
   NRF_RADIO->TASKS_DISABLE = 1UL;
 }
 
-static void setupRx()
+void setupRx()
 {
   NRF_RADIO->PACKETPTR = (uint32_t)&rxPackets[rxq_head];
 
@@ -180,6 +182,41 @@ static void setupRx()
   NRF_RADIO->TASKS_DISABLE = 1UL;
 }
 
+
+void setupPTXTx()
+{
+	// Some counters for in the messages to distinquish the types
+	static uint8_t counter = 0;
+	static uint8_t it = 0;
+
+	// See if this can be replaced by a crazyradio protocol?
+	static EsbPacket interDronePacket;
+	interDronePacket.match =  ESB_INTERDRONE_ADDRESS_MATCH;
+	interDronePacket.size = 5;
+	interDronePacket.pid = it++%4;
+	interDronePacket.ack = 0;
+	interDronePacket.data[0] = 0xf3 | 1<<2;
+	interDronePacket.data[1] = 0x01;
+	interDronePacket.data[2] = 22;
+	interDronePacket.data[3] = counter++;
+	interDronePacket.data[4] = 4; // TODO: replace this with the id of the drone!
+
+	// Message pointer to Nrf radio
+	NRF_RADIO->PACKETPTR = (uint32_t)&interDronePacket;
+	 // The indicator that the message is neither ACKed based or broadcast based, but specifically between drones
+	NRF_RADIO->TXADDRESS = 0x02UL;
+	// Put NRF_Radio to TX mode
+	NRF_RADIO->SHORTS &= ~RADIO_SHORTS_DISABLED_RXEN_Msk;
+	NRF_RADIO->SHORTS |= RADIO_SHORTS_DISABLED_TXEN_Msk;
+	NRF_RADIO->TASKS_DISABLE = 1UL; // By disabling the task, the package is send
+}
+
+void stopPTXTx()
+{
+	// Go back to RX mode
+	setupRx();
+}
+
 void RADIO_IRQHandler()
 {
   esbInterruptHandler();
@@ -187,6 +224,7 @@ void RADIO_IRQHandler()
 
 void esbInterruptHandler()
 {
+
   EsbPacket *pk;
 
   if (NRF_RADIO->EVENTS_END) {
@@ -197,6 +235,7 @@ void esbInterruptHandler()
       //Wrong CRC packet are dropped
       if (!NRF_RADIO->CRCSTATUS) {
         NRF_RADIO->TASKS_START = 1UL;
+
         return;
       }
 
@@ -326,7 +365,7 @@ void esbInit()
   NRF_RADIO->BASE0   = bytewise_bitswap((uint32_t)address);  // Base address for prefix 0
   NRF_RADIO->BASE1   = 0xE7E7E7E7UL;  // Base address for prefix 1-7
   NRF_RADIO->TXADDRESS = 0x00UL;      // Set device address 0 to use when transmitting
-  NRF_RADIO->RXADDRESSES = (1<<0) | (1<<1);    // Enable device address 0 and 1 to use which receiving
+  NRF_RADIO->RXADDRESSES = (1<<0) | (1<<1) | (1<<2);    // Enable device address 0 and 1 to use which receiving
 
   // Packet configuration
   NRF_RADIO->PCNF0 = (PACKET0_S1_SIZE << RADIO_PCNF0_S1LEN_Pos) |

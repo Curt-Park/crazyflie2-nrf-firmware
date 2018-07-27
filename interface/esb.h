@@ -29,6 +29,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+extern bool in_ptx;
+
 /* ESB Radio packet */
 typedef struct esbPacket_s {
   /* Part that is written by the radio DMA */
@@ -62,6 +64,7 @@ typedef enum esbDatarate_e { esbDatarate250K=0,
 
 #define ESB_UNICAST_ADDRESS_MATCH 0
 #define ESB_MULTICAST_ADDRESS_MATCH 1
+#define ESB_INTERDRONE_ADDRESS_MATCH 2
 
 /* Initialize the radio for ESB */
 void esbInit();
@@ -106,5 +109,11 @@ void esbSetContwave(bool enable);
 
 /* Set the address of the radio */
 void esbSetAddress(uint64_t address);
+
+void setupRx();
+
+// functions for PTX mode
+void setupPTXTx();
+void stopPTXTx();
 
 #endif //__ESB_H__

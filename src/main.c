@@ -58,7 +58,7 @@ extern int ble_init(void);
   #define DEFAULT_RADIO_RATE  esbDatarate250K
 #endif
 #ifndef DEFAULT_RADIO_CHANNEL
-  #define DEFAULT_RADIO_CHANNEL 2
+  #define DEFAULT_RADIO_CHANNEL 40
 #endif
 
 static void mainloop(void);
@@ -66,6 +66,8 @@ static void mainloop(void);
 #if BLE==0
 #undef BLE
 #endif
+
+#define ISPTX
 
 static bool boottedFromBootloader;
 
@@ -141,8 +143,22 @@ void mainloop()
   bool slReceived;
   static int vbatSendTime;
 	static int radioRSSISendTime;
+
+	bool in_ptx = false;
 	static uint8_t rssi;
+
   static bool broadcast;
+
+
+
+  //For PTX mode
+	static uint8_t inter_rssi;
+	static int radioPTXSendTime;
+    static int radioPTXtoPRXSendTime;
+    static int radioInterRSSISendTime;
+    static bool send_inter_rssi_to_stm = false;
+    static bool interdrone = true;
+
 
   while(1)
   {
@@ -159,60 +175,99 @@ void mainloop()
 #endif
 #ifndef CONT_WAVE_TEST
 
-    if ((esbReceived == false) && esbIsRxPacket())
+/* If esb packet is received (from computer
+ * 	  AND esb packet is a received packet
+ * 	  AND radio not in PTX mode
+ */
+
+
+	/*if(esbIsRxPacket())
+	{
+	      LED_ON();
+	}else
+		LED_OFF();*/
+
+    if (esbReceived == false && esbIsRxPacket() && in_ptx==false )
     {
       EsbPacket* packet = esbGetRxPacket();
       //Store RSSI here so that we can send it to STM later
       rssi = packet->rssi;
       // The received packet was a broadcast, if received on local address 1
       broadcast = packet->match == ESB_MULTICAST_ADDRESS_MATCH;
+      // The received packet was a interdrone transmission, if received on local address 2
+      interdrone = packet->match == ESB_INTERDRONE_ADDRESS_MATCH;
+
+      // Turn off LED if interdrone address has been encountered (for debugging)
+      if(interdrone)
+       {
+     	  inter_rssi = rssi;
+     	  LED_OFF();
+       }else LED_ON();
+
+
       memcpy(esbRxPacket.data, packet->data, packet->size);
       esbRxPacket.size = packet->size;
       esbReceived = true;
       esbReleaseRxPacket(packet);
     }
 
+
     if (esbReceived)
     {
       EsbPacket* packet = &esbRxPacket;
       esbReceived = false;
-
       if((packet->size >= 4) && (packet->data[0]&0xf3) == 0xf3 && (packet->data[1]==0x03))
       {
+          // Change radio channel, addres and/or power as commanded from groundstation
+
         handleRadioCmd(packet);
+
       }
       else if ((packet->size >2) && (packet->data[0]&0xf3) == 0xf3 && (packet->data[1]==0xfe))
       {
+          // Command for the nrf bootloader (like reseting after flashing)
+
         handleBootloaderCmd(packet);
+
       }
-      else
+      else  // Handle the esb package a normal data package to be send to stm
       {
+    	 // Copy all the data of esb packet to systemlink(sl) packet
         memcpy(slTxPacket.data, packet->data, packet->size);
         slTxPacket.length = packet->size;
-        if (broadcast) {
+
+        if (broadcast) { // If message was broadcast (ground station to multiple drones)
           slTxPacket.type = SYSLINK_RADIO_RAW_BROADCAST;
-        } else {
+        } /*else if (interdrone){ // If message is from another drone on the same channel
+            slTxPacket.type = SYSLINK_RADIO_RAW_INTER;
+        }*/else{
+        	// If message is normal radio raw (one groundstation to one drone)
           slTxPacket.type = SYSLINK_RADIO_RAW;
         }
-
+        // if not interdrone message, send to stm
+        // TODO enable interdrone communication to STM!
+        if(!interdrone){
         syslinkSend(&slTxPacket);
+        }
       }
     }
 
+    /*Detect if message received from STM*/
     slReceived = syslinkReceive(&slRxPacket);
-    if (slReceived)
+    if (slReceived && in_ptx == false)
     {
       switch (slRxPacket.type)
       {
+      // To send ACK message back to ground station
         case SYSLINK_RADIO_RAW:
           if (esbCanTxPacket() && (slRxPacket.length < SYSLINK_MTU))
           {
+
             EsbPacket* packet = esbGetTxPacket();
 
             if (packet) {
               memcpy(packet->data, slRxPacket.data, slRxPacket.length);
               packet->size = slRxPacket.length;
-
               esbSendTxPacket(packet);
             }
             bzero(slRxPacket.data, SYSLINK_MTU);
@@ -322,7 +377,6 @@ void mainloop()
         syslinkSend(&slTxPacket);
       }
       //Send an RSSI sample to the STM every 10ms(100Hz)
-
       if (systickGetTick() >= radioRSSISendTime + 10) {
         radioRSSISendTime = systickGetTick();
         slTxPacket.type = SYSLINK_RADIO_RSSI;
@@ -333,6 +387,41 @@ void mainloop()
 
         syslinkSend(&slTxPacket);
       }
+
+      // Sent interrssi of another drone to the STM every 100 ms
+      if (systickGetTick() >= radioInterRSSISendTime + 100) {
+    	  radioInterRSSISendTime = systickGetTick();
+    	  slTxPacket.type = SYSLINK_RADIO_RSSI_INTER;
+    	  slTxPacket.length = sizeof(uint8_t);
+    	  memcpy(slTxPacket.data, &inter_rssi, sizeof(uint8_t));
+          syslinkSend(&slTxPacket);
+      }
+
+
+#ifdef ISPTX
+      // if in PTX mode, send a message which lasts for 10 ms
+      // TODO find out why it doesn't allow connection anymore with the dongle in ISPTX mode
+
+      // After 1000 ticks Start going into TX mode
+      if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + 1000) {
+    	  radioPTXSendTime = systickGetTick();
+    	  radioPTXtoPRXSendTime = radioPTXSendTime;
+    	  setupPTXTx();
+    	  in_ptx = true;
+      }
+
+      // Indicate by the LEDS if something is send
+      // TODO: find in broadcast (in_ptx), the NRF chip keeps sending messages.
+      if(in_ptx) LED_OFF(); else LED_ON();
+
+      // After 10 ticks, go back to business as usual
+      if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 10) {
+    	  stopPTXTx();
+    	  in_ptx = false;
+      }
+#endif
+
+
     }
 #endif
 
