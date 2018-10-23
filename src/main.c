@@ -403,11 +403,11 @@ void mainloop()
       // TODO find out why it doesn't allow connection anymore with the dongle in ISPTX mode
 
       // After 1000 ticks Start going into TX mode
-      if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + 1000) {
+      if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + 3000) {
     	  radioPTXSendTime = systickGetTick();
     	  radioPTXtoPRXSendTime = radioPTXSendTime;
     	  setupPTXTx();
-    	  in_ptx = true;
+    	//  in_ptx = true;
       }
 
       // Indicate by the LEDS if something is send

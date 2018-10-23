@@ -69,6 +69,9 @@ static bool has_safelink;
 static EsbPacket ackPacket;     // Empty ack packet
 static EsbPacket servicePacket; // Packet sent to answer a low level request
 
+
+
+
 /* helper functions */
 
 static uint32_t swap_bits(uint32_t inp)
@@ -180,11 +183,13 @@ void setupRx()
   NRF_RADIO->SHORTS |= RADIO_SHORTS_DISABLED_RXEN_Msk;
   rs = doRx;
   NRF_RADIO->TASKS_DISABLE = 1UL;
+  in_ptx = false;
 }
 
 
 void setupPTXTx()
 {
+	in_ptx = true;
 	// Some counters for in the messages to distinquish the types
 	static uint8_t counter = 0;
 	static uint8_t it = 0;
@@ -209,6 +214,8 @@ void setupPTXTx()
 	NRF_RADIO->SHORTS &= ~RADIO_SHORTS_DISABLED_RXEN_Msk;
 	NRF_RADIO->SHORTS |= RADIO_SHORTS_DISABLED_TXEN_Msk;
 	NRF_RADIO->TASKS_DISABLE = 1UL; // By disabling the task, the package is send
+
+	rs = doTx;
 }
 
 void stopPTXTx()
