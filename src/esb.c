@@ -70,7 +70,7 @@ static EsbPacket ackPacket;     // Empty ack packet
 static EsbPacket servicePacket; // Packet sent to answer a low level request
 
 
-
+uint8_t beacon_rssi = 0;
 
 /* helper functions */
 
@@ -203,8 +203,8 @@ void setupPTXTx()
 	interDronePacket.data[0] = 0xf3 | 1<<2;
 	interDronePacket.data[1] = 0x01;
 	interDronePacket.data[2] = 22;
-	interDronePacket.data[3] = counter++;
-	interDronePacket.data[4] = 4; // TODO: replace this with the id of the drone!
+	interDronePacket.data[3] = beacon_rssi;
+	interDronePacket.data[4] = 3; // TODO: replace this with the id of the drone!
 
 	// Message pointer to Nrf radio
 	NRF_RADIO->PACKETPTR = (uint32_t)&interDronePacket;
@@ -251,6 +251,14 @@ void esbInterruptHandler()
       pk->crc = NRF_RADIO->RXCRC;
       pk->match = NRF_RADIO->RXMATCH;
 
+      if (pk->match == ESB_UNICAST_ADDRESS_MATCH)
+      beacon_rssi = pk->rssi;
+
+      //TODO just a temporary fix, since the message is not synced with the right rssi value!!!
+      if (pk->match == ESB_INTERDRONE_ADDRESS_MATCH)
+      {
+    	  pk->data[2] =  pk->rssi;
+      }
       // If no more space available on RX queue, drop packet!
       if (((rxq_head+1)%RXQ_LEN) == rxq_tail) {
         NRF_RADIO->TASKS_START = 1UL;

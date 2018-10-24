@@ -67,7 +67,7 @@ static void mainloop(void);
 #undef BLE
 #endif
 
-#define ISPTX
+//#define ISPTX
 
 static bool boottedFromBootloader;
 
@@ -200,7 +200,7 @@ void mainloop()
       // Turn off LED if interdrone address has been encountered (for debugging)
       if(interdrone)
        {
-     	  inter_rssi = rssi;
+     	  inter_rssi = packet->data[2];
      	  LED_OFF();
        }else LED_ON();
 
