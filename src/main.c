@@ -67,7 +67,9 @@ static void mainloop(void);
 #undef BLE
 #endif
 
-//#define ISPTX
+#define ISPTX
+static bool inBootloaderMode=false;
+//uint8_t beacon_rssi =44;
 
 static bool boottedFromBootloader;
 
@@ -198,7 +200,7 @@ void mainloop()
       interdrone = packet->match == ESB_INTERDRONE_ADDRESS_MATCH;
 
       // Turn off LED if interdrone address has been encountered (for debugging)
-      if(interdrone)
+      if(interdrone==true)
        {
      	  inter_rssi = packet->data[2];
      	  LED_OFF();
@@ -402,22 +404,24 @@ void mainloop()
       // if in PTX mode, send a message which lasts for 10 ms
       // TODO find out why it doesn't allow connection anymore with the dongle in ISPTX mode
 
+      if(inBootloaderMode == false){
       // After 1000 ticks Start going into TX mode
-      if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + 3000) {
-    	  radioPTXSendTime = systickGetTick();
-    	  radioPTXtoPRXSendTime = radioPTXSendTime;
-    	  setupPTXTx();
-    	//  in_ptx = true;
-      }
+		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + 3000) {
+			  radioPTXSendTime = systickGetTick();
+			  radioPTXtoPRXSendTime = radioPTXSendTime;
+			  setupPTXTx();
+			  in_ptx = true;
+		  }
 
-      // Indicate by the LEDS if something is send
-      // TODO: find in broadcast (in_ptx), the NRF chip keeps sending messages.
-      if(in_ptx) LED_OFF(); else LED_ON();
+		  // Indicate by the LEDS if something is send
+		  // TODO: find in broadcast (in_ptx), the NRF chip keeps sending messages.
+		  if(in_ptx) LED_OFF(); else LED_ON();
 
-      // After 10 ticks, go back to business as usual
-      if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 10) {
-    	  stopPTXTx();
-    	  in_ptx = false;
+		  // After 10 ticks, go back to business as usual
+		  if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 10) {
+			  stopPTXTx();
+			  in_ptx = false;
+          }
       }
 #endif
 
@@ -430,6 +434,8 @@ void mainloop()
     bool usbConnected = pmUSBPower();
     if ((pmGetState() != pmSysOff) && (be == buttonShortPress) && !usbConnected)
     {
+      inBootloaderMode =false;
+
       pmSetState(pmAllOff);
       /*swdInit();
       swdTest();*/
@@ -437,6 +443,8 @@ void mainloop()
     else if ((pmGetState() != pmSysOff) && (be == buttonShortPress)
                                         && usbConnected)
     {
+      inBootloaderMode =false;
+
     	//pmSetState(pmSysOff);
       pmSetState(pmAllOff);
         /*swdInit();
@@ -445,20 +453,26 @@ void mainloop()
     else if ((pmGetState() == pmSysOff) && (be == buttonShortPress))
     {
       //Normal boot
+      inBootloaderMode =false;
+
       pmSysBootloader(false);
       pmSetState(pmSysRunning);
     }
     else if ((pmGetState() == pmSysOff) && boottedFromBootloader)
     {
+      inBootloaderMode =false;
       //Normal boot after bootloader
       pmSysBootloader(false);
       pmSetState(pmSysRunning);
     }
     else if ((pmGetState() == pmSysOff) && (be == buttonLongPress))
     {
+      inBootloaderMode =true;
+
       //stm bootloader
       pmSysBootloader(true);
       pmSetState(pmSysRunning);
+
     }
     boottedFromBootloader = false;
 

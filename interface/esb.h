@@ -30,6 +30,7 @@
 #include <stdint.h>
 
 extern bool in_ptx;
+extern uint8_t beacon_rssi;
 
 /* ESB Radio packet */
 typedef struct esbPacket_s {
