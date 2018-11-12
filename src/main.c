@@ -147,14 +147,14 @@ void mainloop()
 	static int radioRSSISendTime;
 
 	bool in_ptx = false;
-	static uint8_t rssi;
+	static uint8_t rssi = 160;
 
   static bool broadcast;
 
 
 
   //For PTX mode
-	static uint8_t inter_rssi;
+	static uint8_t inter_rssi=150;
 	static int radioPTXSendTime;
     static int radioPTXtoPRXSendTime;
     static int radioInterRSSISendTime;
@@ -193,7 +193,6 @@ void mainloop()
     {
       EsbPacket* packet = esbGetRxPacket();
       //Store RSSI here so that we can send it to STM later
-      rssi = packet->rssi;
       // The received packet was a broadcast, if received on local address 1
       broadcast = packet->match == ESB_MULTICAST_ADDRESS_MATCH;
       // The received packet was a interdrone transmission, if received on local address 2
@@ -204,7 +203,10 @@ void mainloop()
        {
      	  inter_rssi = packet->data[2];
      	  LED_OFF();
-       }else LED_ON();
+       }else {
+    	      rssi = packet->rssi;
+    	   LED_ON();
+       }
 
 
       memcpy(esbRxPacket.data, packet->data, packet->size);
