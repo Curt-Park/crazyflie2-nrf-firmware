@@ -71,6 +71,7 @@ static EsbPacket servicePacket; // Packet sent to answer a low level request
 
 
 uint8_t beacon_rssi = 0;
+uint8_t  drone_id = 0;
 
 /* helper functions */
 
@@ -192,6 +193,8 @@ void setupRx()
 
 void setupPTXTx()
 {
+	drone_id = (uint8_t)((address) & 0x00000000ff);
+
 	in_ptx = true;
 	// Some counters for in the messages to distinquish the types
 	static uint8_t counter = 0;
@@ -207,7 +210,7 @@ void setupPTXTx()
 	interDronePacket.data[1] = 0x01;
 	interDronePacket.data[2] = 22;
 	interDronePacket.data[3] = beacon_rssi;
-	interDronePacket.data[4] = 0x02; // TODO: replace this with the id of the drone!
+	interDronePacket.data[4] = drone_id;
 
 	// Message pointer to Nrf radio
 	NRF_RADIO->PACKETPTR = (uint32_t)&interDronePacket;

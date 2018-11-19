@@ -31,6 +31,7 @@
 
 extern bool in_ptx;
 extern uint8_t beacon_rssi;
+extern uint8_t drone_id;
 
 /* ESB Radio packet */
 typedef struct esbPacket_s {

@@ -393,7 +393,7 @@ void mainloop()
       }
 
       // Sent interrssi of another drone to the STM every 100 ms
-      if (systickGetTick() >= radioInterRSSISendTime + 22) {
+      if (systickGetTick() >= radioInterRSSISendTime + (20+drone_id*2)) {
     	  radioInterRSSISendTime = systickGetTick();
     	  slTxPacket.type = SYSLINK_RADIO_RSSI_INTER;
     	  slTxPacket.length = sizeof(uint8_t);
@@ -408,7 +408,7 @@ void mainloop()
 
       if(inBootloaderMode == false){
       // After 1000 ticks Start going into TX mode
-		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + 3000) {
+		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + (20+drone_id)) {
 			  radioPTXSendTime = systickGetTick();
 			  radioPTXtoPRXSendTime = radioPTXSendTime;
 			  setupPTXTx();
