@@ -408,7 +408,7 @@ void mainloop()
 
       if(inBootloaderMode == false){
       // After 1000 ticks Start going into TX mode
-		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + 20) {
+		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + 3000) {
 			  radioPTXSendTime = systickGetTick();
 			  radioPTXtoPRXSendTime = radioPTXSendTime;
 			  setupPTXTx();

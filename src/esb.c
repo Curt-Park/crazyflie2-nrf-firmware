@@ -168,6 +168,9 @@ static void setupTx(bool retry)
     }
   }
 
+
+  NRF_RADIO->TXADDRESS = 0x00UL;
+
   //After being disabled the radio will automatically send the ACK
   NRF_RADIO->SHORTS &= ~RADIO_SHORTS_DISABLED_RXEN_Msk;
   NRF_RADIO->SHORTS |= RADIO_SHORTS_DISABLED_TXEN_Msk;
@@ -204,7 +207,7 @@ void setupPTXTx()
 	interDronePacket.data[1] = 0x01;
 	interDronePacket.data[2] = 22;
 	interDronePacket.data[3] = beacon_rssi;
-	interDronePacket.data[4] = 3; // TODO: replace this with the id of the drone!
+	interDronePacket.data[4] = 0x02; // TODO: replace this with the id of the drone!
 
 	// Message pointer to Nrf radio
 	NRF_RADIO->PACKETPTR = (uint32_t)&interDronePacket;
