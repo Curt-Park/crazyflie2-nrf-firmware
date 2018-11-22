@@ -67,7 +67,7 @@ static void mainloop(void);
 #undef BLE
 #endif
 
-#define ISPTX
+//#define ISPTX
 static bool inBootloaderMode=false;
 //uint8_t beacon_rssi =44;
 
@@ -136,6 +136,23 @@ int main()
   return 0;
 }
 
+static int32_t find_minimum(uint8_t a[], int32_t n) {
+	int32_t c, min, index;
+
+	min = a[0];
+	index = 0;
+
+	for (c = 1; c < n; c++) {
+		if (a[c] < min) {
+			index = c;
+			min = a[c];
+		}
+	}
+
+	return index;
+}
+
+
 void mainloop()
 {
   static struct syslinkPacket slRxPacket;
@@ -161,6 +178,7 @@ void mainloop()
     static bool send_inter_rssi_to_stm = false;
     static bool interdrone = true;
 
+    static uint8_t rssi_array_other_drones[9] = {150,150,150,150,150,150,150,150,150};
 
   while(1)
   {
@@ -202,6 +220,13 @@ void mainloop()
       if(interdrone==true)
        {
      	  inter_rssi = packet->data[2];
+     	  int drone_id = packet->data[4];
+     	  if(drone_id==231)
+     	  {
+          	 rssi_array_other_drones[0]=inter_rssi;
+     	  }else{
+     	 rssi_array_other_drones[drone_id]=inter_rssi;
+     	  }
      	  LED_OFF();
        }else {
     	      rssi = packet->rssi;
@@ -393,11 +418,13 @@ void mainloop()
       }
 
       // Sent interrssi of another drone to the STM every 100 ms
-      if (systickGetTick() >= radioInterRSSISendTime + (20+drone_id*2)) {
+      if (systickGetTick() >= radioInterRSSISendTime + (40+drone_id*2)) {
     	  radioInterRSSISendTime = systickGetTick();
+    	  int index = find_minimum(rssi_array_other_drones,9);
+    	  uint8_t inter_rssi_min = rssi_array_other_drones[index];
     	  slTxPacket.type = SYSLINK_RADIO_RSSI_INTER;
     	  slTxPacket.length = sizeof(uint8_t);
-    	  memcpy(slTxPacket.data, &inter_rssi, sizeof(uint8_t));
+    	  memcpy(slTxPacket.data, &inter_rssi_min, sizeof(uint8_t));
           syslinkSend(&slTxPacket);
       }
 
@@ -408,7 +435,7 @@ void mainloop()
 
       if(inBootloaderMode == false){
       // After 1000 ticks Start going into TX mode
-		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + (20+drone_id)) {
+		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + (40+drone_id*1)) {
 			  radioPTXSendTime = systickGetTick();
 			  radioPTXtoPRXSendTime = radioPTXSendTime;
 			  setupPTXTx();
