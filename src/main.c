@@ -67,7 +67,7 @@ static void mainloop(void);
 #undef BLE
 #endif
 
-//#define ISPTX
+#define ISPTX
 static bool inBootloaderMode=false;
 //uint8_t beacon_rssi =44;
 
@@ -179,6 +179,7 @@ void mainloop()
     static bool interdrone = true;
 
     static uint8_t rssi_array_other_drones[9] = {150,150,150,150,150,150,150,150,150};
+    static unsigned int time_array_other_drones[9] = {0};
 
   while(1)
   {
@@ -221,11 +222,15 @@ void mainloop()
        {
      	  inter_rssi = packet->data[2];
      	  int drone_id = packet->data[4];
+          // exception for drones that don't have a defined ID
      	  if(drone_id==231)
      	  {
           	 rssi_array_other_drones[0]=inter_rssi;
+          	 time_array_other_drones[0] = systickGetTick();
      	  }else{
      	 rssi_array_other_drones[drone_id]=inter_rssi;
+      	 time_array_other_drones[drone_id] = systickGetTick();
+
      	  }
      	  LED_OFF();
        }else {
@@ -417,16 +422,27 @@ void mainloop()
         syslinkSend(&slTxPacket);
       }
 
+
       // Sent interrssi of another drone to the STM every 100 ms
-      if (systickGetTick() >= radioInterRSSISendTime + (40+drone_id*2)) {
+      if (systickGetTick() >= radioInterRSSISendTime + (80+drone_id*2)) {
     	  radioInterRSSISendTime = systickGetTick();
-    	  int index = find_minimum(rssi_array_other_drones,9);
+    	  uint8_t index = (uint8_t)find_minimum(rssi_array_other_drones,9);
     	  uint8_t inter_rssi_min = rssi_array_other_drones[index];
     	  slTxPacket.type = SYSLINK_RADIO_RSSI_INTER;
-    	  slTxPacket.length = sizeof(uint8_t);
+    	  slTxPacket.length = 2*sizeof(uint8_t);
     	  memcpy(slTxPacket.data, &inter_rssi_min, sizeof(uint8_t));
+    	  memcpy(slTxPacket.data+1, &index, sizeof(uint8_t));
+
           syslinkSend(&slTxPacket);
+
+          // For every 1000 ticks, reset the rssi value if it hasn't been recieved for a while
+    	  for(uint8_t it = 0; it<9;it++) if (systickGetTick() >= time_array_other_drones[it]+3000)
+    		  {
+    		  time_array_other_drones[it] =systickGetTick()+3001;
+    		  rssi_array_other_drones[it] = 150;
+    		  }
       }
+
 
 
 #ifdef ISPTX
@@ -435,7 +451,7 @@ void mainloop()
 
       if(inBootloaderMode == false){
       // After 1000 ticks Start going into TX mode
-		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + (40+drone_id*1)) {
+		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + (80+drone_id*2+1)) {
 			  radioPTXSendTime = systickGetTick();
 			  radioPTXtoPRXSendTime = radioPTXSendTime;
 			  setupPTXTx();

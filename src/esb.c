@@ -252,6 +252,8 @@ void esbInterruptHandler()
         return;
       }
 
+      //TODO: handle inter rssi directly here!
+
       pk = &rxPackets[rxq_head];
       pk->rssi = (uint8_t) NRF_RADIO->RSSISAMPLE;
       pk->crc = NRF_RADIO->RXCRC;
