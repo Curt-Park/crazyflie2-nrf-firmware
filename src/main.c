@@ -125,7 +125,7 @@ int main()
 
   esbSetDatarate(DEFAULT_RADIO_RATE);
   esbSetChannel(DEFAULT_RADIO_CHANNEL);
-#endif
+#endif	esbSetChannel(drone_id*10);
 
   mainloop();
 
@@ -238,7 +238,7 @@ void mainloop()
      	  }
      	  LED_OFF();
        }else {
-    	 //     rssi = packet->rssi;
+           rssi = packet->rssi;
     	   LED_ON();
        }
 
@@ -468,7 +468,7 @@ void mainloop()
 		  if(in_ptx) LED_OFF(); else LED_ON();
 
 		  // After 10 ticks, go back to business as usual
-		  if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 10) {
+		  if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 30) {
 			  stopPTXTx();
 			  in_ptx = false;
           }

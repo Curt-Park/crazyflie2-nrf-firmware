@@ -193,6 +193,8 @@ void setupRx()
 
 void setupPTXTx()
 {
+        esbSetChannel(30);
+
 	drone_id = (uint8_t)((address) & 0x00000000ff);
 
 	in_ptx = true;
@@ -226,6 +228,7 @@ void setupPTXTx()
 
 void stopPTXTx()
 {
+	esbSetChannel(drone_id*10);
 	// Go back to RX mode
 	setupRx();
 }
