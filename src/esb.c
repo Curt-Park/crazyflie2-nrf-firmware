@@ -245,6 +245,21 @@ void esbInterruptHandler()
 
     switch (rs){
     case doRx:
+
+
+/*
+        if((pk->size >= 4) && (pk->data[0]&0xf3) == 0xf3 && (pk->data[1]==0x03)&&pk->data[2]==0x08)
+          {
+              // Change radio channel, addres and/or power as commanded from groundstation
+
+           // handleRadioCmd(packet);
+      	  beacon_rssi = pk->rssi;
+
+          }
+*/
+
+
+
       //Wrong CRC packet are dropped
       if (!NRF_RADIO->CRCSTATUS) {
         NRF_RADIO->TASKS_START = 1UL;
@@ -259,6 +274,8 @@ void esbInterruptHandler()
       pk->crc = NRF_RADIO->RXCRC;
       pk->match = NRF_RADIO->RXMATCH;
 
+      //if (pk->match == ESB_UNICAST_ADDRESS_MATCH||(pk->match == ESB_INTERDRONE_ADDRESS_MATCH&&pk->data[4]==231))
+     // if (pk->match == ESB_INTERDRONE_ADDRESS_MATCH&&pk->data[4]==231)
       if (pk->match == ESB_UNICAST_ADDRESS_MATCH)
       beacon_rssi = pk->rssi;
 

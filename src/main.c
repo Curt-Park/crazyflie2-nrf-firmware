@@ -55,7 +55,7 @@ extern int ble_init(void);
 #endif
 
 #ifndef DEFAULT_RADIO_RATE
-  #define DEFAULT_RADIO_RATE  esbDatarate250K
+  #define DEFAULT_RADIO_RATE  esbDatarate2M
 #endif
 #ifndef DEFAULT_RADIO_CHANNEL
   #define DEFAULT_RADIO_CHANNEL 40
@@ -152,6 +152,7 @@ static int32_t find_minimum(uint8_t a[], int32_t n) {
 	return index;
 }
 
+static uint8_t rssi = 160;
 
 void mainloop()
 {
@@ -164,7 +165,6 @@ void mainloop()
 	static int radioRSSISendTime;
 
 	bool in_ptx = false;
-	static uint8_t rssi = 160;
 
   static bool broadcast;
 
@@ -177,6 +177,7 @@ void mainloop()
     static int radioInterRSSISendTime;
     static bool send_inter_rssi_to_stm = false;
     static bool interdrone = true;
+    static uint8_t inter_beacon_rssi = 140;
 
     static uint8_t rssi_array_other_drones[9] = {150,150,150,150,150,150,150,150,150};
     static unsigned int time_array_other_drones[9] = {0};
@@ -222,9 +223,12 @@ void mainloop()
        {
      	  inter_rssi = packet->data[2];
      	  int drone_id = packet->data[4];
+     	  inter_beacon_rssi = packet->data[3];
+
           // exception for drones that don't have a defined ID
      	  if(drone_id==231)
      	  {
+     		 // rssi = packet->rssi;
           	 rssi_array_other_drones[0]=inter_rssi;
           	 time_array_other_drones[0] = systickGetTick();
      	  }else{
@@ -234,7 +238,7 @@ void mainloop()
      	  }
      	  LED_OFF();
        }else {
-    	      rssi = packet->rssi;
+    	 //     rssi = packet->rssi;
     	   LED_ON();
        }
 
@@ -429,9 +433,10 @@ void mainloop()
     	  uint8_t index = (uint8_t)find_minimum(rssi_array_other_drones,9);
     	  uint8_t inter_rssi_min = rssi_array_other_drones[index];
     	  slTxPacket.type = SYSLINK_RADIO_RSSI_INTER;
-    	  slTxPacket.length = 2*sizeof(uint8_t);
+    	  slTxPacket.length = 3*sizeof(uint8_t);
     	  memcpy(slTxPacket.data, &inter_rssi_min, sizeof(uint8_t));
     	  memcpy(slTxPacket.data+1, &index, sizeof(uint8_t));
+    	  memcpy(slTxPacket.data+2, &inter_beacon_rssi, sizeof(uint8_t));
 
           syslinkSend(&slTxPacket);
 
@@ -531,6 +536,7 @@ void mainloop()
 #define RADIO_CTRL_SET_CHANNEL 1
 #define RADIO_CTRL_SET_DATARATE 2
 #define RADIO_CTRL_SET_POWER 3
+#define ONLY_RSSI_NO_ACK 8
 
 static void handleRadioCmd(struct esbPacket_s *packet)
 {
@@ -544,6 +550,9 @@ static void handleRadioCmd(struct esbPacket_s *packet)
     case RADIO_CTRL_SET_POWER:
       esbSetTxPower(packet->data[3]);
       break;
+    case ONLY_RSSI_NO_ACK:
+    	rssi = packet->rssi;
+    	break;
     default:
       break;
   }
