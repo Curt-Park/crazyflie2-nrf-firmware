@@ -115,7 +115,7 @@ void esbSetAddress(uint64_t address);
 void setupRx();
 
 // functions for PTX mode
-void setupPTXTx();
+void setupPTXTx(unsigned int ch);
 void stopPTXTx();
 
 #endif //__ESB_H__

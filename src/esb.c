@@ -191,9 +191,9 @@ void setupRx()
 }
 
 
-void setupPTXTx()
+void setupPTXTx(unsigned int ch)
 {
-        esbSetChannel(30);
+    esbSetChannel(ch);
 
 	drone_id = (uint8_t)((address) & 0x00000000ff);
 

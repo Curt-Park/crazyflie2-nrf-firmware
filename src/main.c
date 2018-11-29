@@ -181,6 +181,9 @@ void mainloop()
 
     static uint8_t rssi_array_other_drones[9] = {150,150,150,150,150,150,150,150,150};
     static unsigned int time_array_other_drones[9] = {0};
+    static unsigned int channels_other_drones[2] = {20, 40};
+    int number_of_channels = sizeof(channels_other_drones) / sizeof(unsigned int);
+    static count_switch_channel = 0;
 
   while(1)
   {
@@ -456,10 +459,15 @@ void mainloop()
 
       if(inBootloaderMode == false){
       // After 1000 ticks Start going into TX mode
-		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + (80+drone_id*2+1)) {
+		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + (200+drone_id*2+1)) {
+			  LED_OFF();
 			  radioPTXSendTime = systickGetTick();
 			  radioPTXtoPRXSendTime = radioPTXSendTime;
-			  setupPTXTx();
+			  setupPTXTx(channels_other_drones[count_switch_channel%number_of_channels]);
+			  count_switch_channel ++;
+			  //stopPTXTx();
+			  //LED_ON();
+
 			  in_ptx = true;
 		  }
 
@@ -468,7 +476,7 @@ void mainloop()
 		  if(in_ptx) LED_OFF(); else LED_ON();
 
 		  // After 10 ticks, go back to business as usual
-		  if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 30) {
+		  if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 1) {
 			  stopPTXTx();
 			  in_ptx = false;
           }
