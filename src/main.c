@@ -184,6 +184,12 @@ void mainloop()
     static unsigned int channels_other_drones[2] = {20, 40};
     int number_of_channels = sizeof(channels_other_drones) / sizeof(unsigned int);
     static count_switch_channel = 0;
+    static uint8_t state_gbug = 0;
+    static float rssi_angle_gbug = 0;
+
+    static float rssi_angle_other_drone = 0;
+    static float rssi_angle_array_other_drones[9] = {500.0f};
+
 
   while(1)
   {
@@ -228,15 +234,19 @@ void mainloop()
      	  int drone_id = packet->data[4];
      	  inter_beacon_rssi = packet->data[3];
 
+          memcpy(&rssi_angle_other_drone, &packet->data[5], sizeof(float));
+
           // exception for drones that don't have a defined ID
      	  if(drone_id==231)
      	  {
      		 // rssi = packet->rssi;
           	 rssi_array_other_drones[0]=inter_rssi;
           	 time_array_other_drones[0] = systickGetTick();
+          	rssi_angle_array_other_drones[0] = rssi_angle_other_drone;
      	  }else{
      	 rssi_array_other_drones[drone_id]=inter_rssi;
       	 time_array_other_drones[drone_id] = systickGetTick();
+       	rssi_angle_array_other_drones[drone_id] = rssi_angle_other_drone;
 
      	  }
      	  LED_OFF();
@@ -389,6 +399,12 @@ void mainloop()
           if (memorySyslink(&slRxPacket)) {
             syslinkSend(&slRxPacket);
           }
+	  break;
+        case SYSLINK_GRADIENT_BUG:
+          if(slRxPacket.length > 0){
+            state_gbug = slRxPacket.data[0];
+            memcpy(&rssi_angle_gbug, slRxPacket.data +1, sizeof(float));
+          }
           break;
       }
     }
@@ -435,11 +451,13 @@ void mainloop()
     	  radioInterRSSISendTime = systickGetTick();
     	  uint8_t index = (uint8_t)find_minimum(rssi_array_other_drones,9);
     	  uint8_t inter_rssi_min = rssi_array_other_drones[index];
+    	  float rssi_angle_inter_min = rssi_angle_array_other_drones[index];
     	  slTxPacket.type = SYSLINK_RADIO_RSSI_INTER;
-    	  slTxPacket.length = 3*sizeof(uint8_t);
+    	  slTxPacket.length = 8*sizeof(uint8_t);
     	  memcpy(slTxPacket.data, &inter_rssi_min, sizeof(uint8_t));
     	  memcpy(slTxPacket.data+1, &index, sizeof(uint8_t));
     	  memcpy(slTxPacket.data+2, &inter_beacon_rssi, sizeof(uint8_t));
+    	  memcpy(slTxPacket.data+3, &rssi_angle_inter_min, sizeof(float));
 
           syslinkSend(&slTxPacket);
 
@@ -448,6 +466,7 @@ void mainloop()
     		  {
     		  time_array_other_drones[it] =systickGetTick()+3001;
     		  rssi_array_other_drones[it] = 150;
+    		  rssi_angle_array_other_drones[it]=500.0f;
     		  }
       }
 
@@ -457,13 +476,15 @@ void mainloop()
       // if in PTX mode, send a message which lasts for 10 ms
       // TODO find out why it doesn't allow connection anymore with the dongle in ISPTX mode
 
-      if(inBootloaderMode == false){
-      // After 1000 ticks Start going into TX mode
+      if(!(state_gbug==0)){
+      if(inBootloaderMode == false)
+      {
+    	  // After 1000 ticks Start going into TX mode
 		  if (in_ptx==false &&systickGetTick() >= radioPTXSendTime + (200+drone_id*2+1)) {
 			  LED_OFF();
 			  radioPTXSendTime = systickGetTick();
 			  radioPTXtoPRXSendTime = radioPTXSendTime;
-			  setupPTXTx(channels_other_drones[count_switch_channel%number_of_channels]);
+			  setupPTXTx(channels_other_drones[count_switch_channel%number_of_channels],rssi_angle_gbug);
 			  count_switch_channel ++;
 			  //stopPTXTx();
 			  //LED_ON();
@@ -480,6 +501,7 @@ void mainloop()
 			  stopPTXTx();
 			  in_ptx = false;
           }
+      }
       }
 #endif
 

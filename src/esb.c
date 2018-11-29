@@ -191,7 +191,7 @@ void setupRx()
 }
 
 
-void setupPTXTx(unsigned int ch)
+void setupPTXTx(unsigned int ch, float rssi_angle_gbug)
 {
     esbSetChannel(ch);
 
@@ -205,7 +205,7 @@ void setupPTXTx(unsigned int ch)
 	// See if this can be replaced by a crazyradio protocol?
 	static EsbPacket interDronePacket;
 	interDronePacket.match =  ESB_INTERDRONE_ADDRESS_MATCH;
-	interDronePacket.size = 5;
+	interDronePacket.size = 9;
 	interDronePacket.pid = it++%4;
 	interDronePacket.ack = 0;
 	interDronePacket.data[0] = 0xf3 | 1<<2;
@@ -213,6 +213,12 @@ void setupPTXTx(unsigned int ch)
 	interDronePacket.data[2] = 22;
 	interDronePacket.data[3] = beacon_rssi;
 	interDronePacket.data[4] = drone_id;
+
+   // float dummyfloat = 90.0f;
+   // memcpy(&interDronePacket.data[5],&dummyfloat, sizeof(float));
+
+   memcpy( interDronePacket.data + 5,&rssi_angle_gbug, sizeof(float));
+
 
 	// Message pointer to Nrf radio
 	NRF_RADIO->PACKETPTR = (uint32_t)&interDronePacket;

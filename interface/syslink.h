@@ -54,6 +54,8 @@ bool syslinkSend(struct syslinkPacket *packet);
 #define SYSLINK_RADIO_POWER         0x07
 #define SYSLINK_RADIO_RAW_INTER     0x08
 #define SYSLINK_RADIO_RSSI_INTER     0x09
+#define SYSLINK_GRADIENT_BUG        0x15
+
 
 
 #define SYSLINK_PM_SOURCE 0x10
