@@ -67,7 +67,7 @@ static void mainloop(void);
 #undef BLE
 #endif
 
-//#define ISPTX
+#define ISPTX
 static bool inBootloaderMode=false;
 //uint8_t beacon_rssi =44;
 
@@ -181,7 +181,7 @@ void mainloop()
 
     static uint8_t rssi_array_other_drones[9] = {150,150,150,150,150,150,150,150,150};
     static unsigned int time_array_other_drones[9] = {0};
-    static unsigned int channels_other_drones[2] = {20, 40, 60};
+    static unsigned int channels_other_drones[4] = {20, 40, 60, 80};
     int number_of_channels = sizeof(channels_other_drones) / sizeof(unsigned int);
     static count_switch_channel = 0;
     static uint8_t state_gbug = 0;
