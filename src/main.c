@@ -181,7 +181,7 @@ void mainloop()
 
     static uint8_t rssi_array_other_drones[9] = {150,150,150,150,150,150,150,150,150};
     static unsigned int time_array_other_drones[9] = {0};
-    static unsigned int channels_other_drones[4] = {20, 40, 60, 80};
+    static unsigned int channels_other_drones[8] = {20,30 ,40,50,60,70,80,90};
     int number_of_channels = sizeof(channels_other_drones) / sizeof(unsigned int);
     static count_switch_channel = 0;
     static uint8_t state_gbug = 0;
@@ -497,7 +497,7 @@ void mainloop()
 		  if(in_ptx) LED_OFF(); else LED_ON();
 
 		  // After 10 ticks, go back to business as usual
-		  if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 1) {
+		  if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 3) {
 			  stopPTXTx();
 			  in_ptx = false;
           }

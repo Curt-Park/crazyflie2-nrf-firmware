@@ -234,7 +234,22 @@ void setupPTXTx(unsigned int ch, float rssi_angle_gbug)
 
 void stopPTXTx()
 {
-	esbSetChannel(drone_id*10);
+	// check if drone is even number
+  //  if(drone_id%2 ==0)
+	if(drone_id !=16 )
+	{
+	    esbSetChannel(drone_id*10);
+	}else
+	{
+	    esbSetChannel(100);
+
+	}
+    //esbSetChannel(drone_id);
+
+//    else{
+    	// Uneven numbers go to the channel under (2 drones per channel: 20 40 60 80)
+ //   	esbSetChannel((drone_id-1)*10);
+ //   }
 	// Go back to RX mode
 	setupRx();
 }
