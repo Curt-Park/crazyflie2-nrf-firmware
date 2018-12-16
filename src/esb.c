@@ -236,14 +236,14 @@ void stopPTXTx()
 {
 	// check if drone is even number
   //  if(drone_id%2 ==0)
-	if(drone_id !=16 )
-	{
+	//if(drone_id !=16 )
+	//{
 	    esbSetChannel(drone_id*10);
-	}else
-	{
-	    esbSetChannel(100);
+//}else
+	//{
+	 //   esbSetChannel(100);
 
-	}
+	//}
     //esbSetChannel(drone_id);
 
 //    else{

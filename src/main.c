@@ -484,12 +484,20 @@ void mainloop()
 			  LED_OFF();
 			  radioPTXSendTime = systickGetTick();
 			  radioPTXtoPRXSendTime = radioPTXSendTime;
-			  setupPTXTx(channels_other_drones[count_switch_channel%number_of_channels],rssi_angle_gbug);
+			  if(channels_other_drones[count_switch_channel%number_of_channels]>drone_id*10)
+			  {
+				  setupPTXTx(channels_other_drones[count_switch_channel%number_of_channels],rssi_angle_gbug);
+			      in_ptx = true;
+			  }
+			  else
+			  {
+				  in_ptx = false;
+			  }
+
 			  count_switch_channel ++;
 			  //stopPTXTx();
 			  //LED_ON();
 
-			  in_ptx = true;
 		  }
 
 		  // Indicate by the LEDS if something is send
@@ -497,7 +505,7 @@ void mainloop()
 		  if(in_ptx) LED_OFF(); else LED_ON();
 
 		  // After 10 ticks, go back to business as usual
-		  if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 3) {
+		  if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 1) {
 			  stopPTXTx();
 			  in_ptx = false;
           }
