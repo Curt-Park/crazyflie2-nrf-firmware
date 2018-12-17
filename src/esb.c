@@ -190,11 +190,11 @@ void setupRx()
   in_ptx = false;
 }
 
+static EsbPacket interDronePacket;
 
 void setupPTXTx(unsigned int ch, float rssi_angle_gbug)
 {
     esbSetChannel(ch);
-
 	drone_id = (uint8_t)((address) & 0x00000000ff);
 
 	in_ptx = true;
@@ -203,7 +203,6 @@ void setupPTXTx(unsigned int ch, float rssi_angle_gbug)
 	static uint8_t it = 0;
 
 	// See if this can be replaced by a crazyradio protocol?
-	static EsbPacket interDronePacket;
 	interDronePacket.match =  ESB_INTERDRONE_ADDRESS_MATCH;
 	interDronePacket.size = 9;
 	interDronePacket.pid = it++%4;
@@ -231,6 +230,16 @@ void setupPTXTx(unsigned int ch, float rssi_angle_gbug)
 
 	rs = doTx;
 }
+void sendPTXagian()
+{
+	NRF_RADIO->PACKETPTR = (uint32_t)&interDronePacket;
+	NRF_RADIO->TXADDRESS = 0x02UL;
+	// Put NRF_Radio to TX mode
+	NRF_RADIO->SHORTS &= ~RADIO_SHORTS_DISABLED_RXEN_Msk;
+	NRF_RADIO->SHORTS |= RADIO_SHORTS_DISABLED_TXEN_Msk;
+	NRF_RADIO->TASKS_DISABLE = 1UL; // By disabling the task, the package is send
+}
+
 
 void stopPTXTx()
 {

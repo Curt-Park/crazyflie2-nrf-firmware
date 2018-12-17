@@ -181,7 +181,7 @@ void mainloop()
 
     static uint8_t rssi_array_other_drones[9] = {150,150,150,150,150,150,150,150,150};
     static unsigned int time_array_other_drones[9] = {0};
-    static unsigned int channels_other_drones[8] = {20,30 ,40,50,60,70,80,90};
+    static unsigned int channels_other_drones[4] = {40,50,60,70};
     int number_of_channels = sizeof(channels_other_drones) / sizeof(unsigned int);
     static count_switch_channel = 0;
     static uint8_t state_gbug = 0;
@@ -189,6 +189,7 @@ void mainloop()
 
     static float rssi_angle_other_drone = 0;
     static float rssi_angle_array_other_drones[9] = {500.0f};
+    static unsigned int time_beacon_rssi=0;
 
 
   while(1)
@@ -251,7 +252,9 @@ void mainloop()
      	  }
      	  LED_OFF();
        }else {
+    	   // if not intermessage, save rssi and save time to check for later
            rssi = packet->rssi;
+           time_beacon_rssi = systickGetTick();
     	   LED_ON();
        }
 
@@ -437,6 +440,11 @@ void mainloop()
       if (systickGetTick() >= radioRSSISendTime + 101) {
         radioRSSISendTime = systickGetTick();
         slTxPacket.type = SYSLINK_RADIO_RSSI;
+        if (systickGetTick() >= time_beacon_rssi+4000)
+        {
+        	rssi = 130;
+            time_beacon_rssi=systickGetTick()+4001;
+        }
         //This message contains only the RSSI measurement which consist
         //of a single uint8_t
         slTxPacket.length = sizeof(uint8_t);
@@ -462,9 +470,9 @@ void mainloop()
           syslinkSend(&slTxPacket);
 
           // For every 1000 ticks, reset the rssi value if it hasn't been recieved for a while
-    	  for(uint8_t it = 0; it<9;it++) if (systickGetTick() >= time_array_other_drones[it]+3000)
+    	  for(uint8_t it = 0; it<9;it++) if (systickGetTick() >= time_array_other_drones[it]+4000)
     		  {
-    		  time_array_other_drones[it] =systickGetTick()+3001;
+    		  time_array_other_drones[it] =systickGetTick()+4001;
     		  rssi_array_other_drones[it] = 150;
     		  rssi_angle_array_other_drones[it]=500.0f;
     		  }
@@ -502,7 +510,7 @@ void mainloop()
 
 		  // Indicate by the LEDS if something is send
 		  // TODO: find in broadcast (in_ptx), the NRF chip keeps sending messages.
-		  if(in_ptx) LED_OFF(); else LED_ON();
+		  if(in_ptx){sendPTXagian(); LED_OFF();} else LED_ON();
 
 		  // After 10 ticks, go back to business as usual
 		  if (in_ptx==true && systickGetTick() >= radioPTXtoPRXSendTime + 1) {
