@@ -42,7 +42,7 @@
 #define TXQ_LEN 16
 
 static bool isInit = true;
-bool in_ptx=false;
+bool in_ptx = false;
 
 static int channel = 2;
 static int datarate = esbDatarate2M;
@@ -82,8 +82,7 @@ static uint32_t swap_bits(uint32_t inp)
 
   inp = (inp & 0x000000FFUL);
 
-  for(i = 0; i < 8; i++)
-  {
+  for (i = 0; i < 8; i++) {
     retval |= ((inp >> i) & 0x01) << (7 - i);
   }
 
@@ -93,9 +92,9 @@ static uint32_t swap_bits(uint32_t inp)
 static uint32_t bytewise_bitswap(uint32_t inp)
 {
   return (swap_bits(inp >> 24) << 24)
-       | (swap_bits(inp >> 16) << 16)
-       | (swap_bits(inp >> 8) << 8)
-       | (swap_bits(inp));
+         | (swap_bits(inp >> 16) << 16)
+         | (swap_bits(inp >> 8) << 8)
+         | (swap_bits(inp));
 }
 
 /* Radio protocol implementation */
@@ -120,7 +119,7 @@ static bool isRetry(EsbPacket *pk)
 // Handles the queue
 static void setupTx(bool retry)
 {
-  static EsbPacket * lastSentPacket;
+  static EsbPacket *lastSentPacket;
 
   if (retry) {
     NRF_RADIO->PACKETPTR = (uint32_t)lastSentPacket;
@@ -128,7 +127,7 @@ static void setupTx(bool retry)
     if (lastSentPacket != &ackPacket) {
       //No retry, TX payload has been sent!
       if (txq_head != txq_tail) {
-        txq_tail = ((txq_tail+1)%TXQ_LEN);
+        txq_tail = ((txq_tail + 1) % TXQ_LEN);
       }
     }
     if (lastSentPacket == &servicePacket) {
@@ -142,19 +141,19 @@ static void setupTx(bool retry)
       // Send next TX packet
       NRF_RADIO->PACKETPTR = (uint32_t)&txPackets[txq_tail];
       if (has_safelink) {
-        txPackets[txq_tail].data[0] = (txPackets[txq_tail].data[0]&0xf3) | curr_down<<2;
+        txPackets[txq_tail].data[0] = (txPackets[txq_tail].data[0] & 0xf3) | curr_down << 2;
       }
       lastSentPacket = &txPackets[txq_tail];
     } else {
       // Send empty ACK
 #ifdef RSSI_ACK_PACKET
       ackPacket.size = 3;
-      ackPacket.data[0] = 0xf3 | curr_down<<2;
+      ackPacket.data[0] = 0xf3 | curr_down << 2;
       ackPacket.data[1] = 0x01;
       ackPacket.data[2] = NRF_RADIO->RSSISAMPLE;
 #elif defined RSSI_VBAT_ACK_PACKET
       ackPacket.size = 4 + sizeof(uint32_t);
-      ackPacket.data[0] = 0xf3 | curr_down<<2;
+      ackPacket.data[0] = 0xf3 | curr_down << 2;
       ackPacket.data[1] = 0x01;
       ackPacket.data[2] = NRF_RADIO->RSSISAMPLE;
       ackPacket.data[3] = 0x02;
@@ -162,7 +161,7 @@ static void setupTx(bool retry)
       memcpy(&ackPacket.data[4], &vBat, sizeof(uint32_t));
 #else
       ackPacket.size = 1;
-      ackPacket.data[0] = 0xf3 | curr_down<<2;
+      ackPacket.data[0] = 0xf3 | curr_down << 2;
 #endif
       NRF_RADIO->PACKETPTR = (uint32_t)&ackPacket;
       lastSentPacket = &ackPacket;
@@ -194,73 +193,73 @@ static EsbPacket interDronePacket;
 
 void setupPTXTx(unsigned int ch, float rssi_angle_gbug)
 {
-    esbSetChannel(ch);
-	drone_id = (uint8_t)((address) & 0x00000000ff);
+  esbSetChannel(ch);
+  drone_id = (uint8_t)((address) & 0x00000000ff);
 
-	in_ptx = true;
-	// Some counters for in the messages to distinquish the types
-	static uint8_t counter = 0;
-	static uint8_t it = 0;
+  in_ptx = true;
+  // Some counters for in the messages to distinquish the types
+  static uint8_t counter = 0;
+  static uint8_t it = 0;
 
-	// See if this can be replaced by a crazyradio protocol?
-	interDronePacket.match =  ESB_INTERDRONE_ADDRESS_MATCH;
-	interDronePacket.size = 9;
-	interDronePacket.pid = it++%4;
-	interDronePacket.ack = 0;
-	interDronePacket.data[0] = 0xf3 | 1<<2;
-	interDronePacket.data[1] = 0x01;
-	interDronePacket.data[2] = 22;
-	interDronePacket.data[3] = beacon_rssi;
-	interDronePacket.data[4] = drone_id;
+  // See if this can be replaced by a crazyradio protocol?
+  interDronePacket.match =  ESB_INTERDRONE_ADDRESS_MATCH;
+  interDronePacket.size = 9;
+  interDronePacket.pid = it++ % 4;
+  interDronePacket.ack = 0;
+  interDronePacket.data[0] = 0xf3 | 1 << 2;
+  interDronePacket.data[1] = 0x01;
+  interDronePacket.data[2] = 22;
+  interDronePacket.data[3] = beacon_rssi;
+  interDronePacket.data[4] = drone_id;
 
-   // float dummyfloat = 90.0f;
-   // memcpy(&interDronePacket.data[5],&dummyfloat, sizeof(float));
+  // float dummyfloat = 90.0f;
+  // memcpy(&interDronePacket.data[5],&dummyfloat, sizeof(float));
 
-   memcpy( interDronePacket.data + 5,&rssi_angle_gbug, sizeof(float));
+  memcpy(interDronePacket.data + 5, &rssi_angle_gbug, sizeof(float));
 
 
-	// Message pointer to Nrf radio
-	NRF_RADIO->PACKETPTR = (uint32_t)&interDronePacket;
-	 // The indicator that the message is neither ACKed based or broadcast based, but specifically between drones
-	NRF_RADIO->TXADDRESS = 0x02UL;
-	// Put NRF_Radio to TX mode
-	NRF_RADIO->SHORTS &= ~RADIO_SHORTS_DISABLED_RXEN_Msk;
-	NRF_RADIO->SHORTS |= RADIO_SHORTS_DISABLED_TXEN_Msk;
-	NRF_RADIO->TASKS_DISABLE = 1UL; // By disabling the task, the package is send
+  // Message pointer to Nrf radio
+  NRF_RADIO->PACKETPTR = (uint32_t)&interDronePacket;
+  // The indicator that the message is neither ACKed based or broadcast based, but specifically between drones
+  NRF_RADIO->TXADDRESS = 0x02UL;
+  // Put NRF_Radio to TX mode
+  NRF_RADIO->SHORTS &= ~RADIO_SHORTS_DISABLED_RXEN_Msk;
+  NRF_RADIO->SHORTS |= RADIO_SHORTS_DISABLED_TXEN_Msk;
+  NRF_RADIO->TASKS_DISABLE = 1UL; // By disabling the task, the package is send
 
-	rs = doTx;
+  rs = doTx;
 }
 void sendPTXagian()
 {
-	NRF_RADIO->PACKETPTR = (uint32_t)&interDronePacket;
-	NRF_RADIO->TXADDRESS = 0x02UL;
-	// Put NRF_Radio to TX mode
-	NRF_RADIO->SHORTS &= ~RADIO_SHORTS_DISABLED_RXEN_Msk;
-	NRF_RADIO->SHORTS |= RADIO_SHORTS_DISABLED_TXEN_Msk;
-	NRF_RADIO->TASKS_DISABLE = 1UL; // By disabling the task, the package is send
+  NRF_RADIO->PACKETPTR = (uint32_t)&interDronePacket;
+  NRF_RADIO->TXADDRESS = 0x02UL;
+  // Put NRF_Radio to TX mode
+  NRF_RADIO->SHORTS &= ~RADIO_SHORTS_DISABLED_RXEN_Msk;
+  NRF_RADIO->SHORTS |= RADIO_SHORTS_DISABLED_TXEN_Msk;
+  NRF_RADIO->TASKS_DISABLE = 1UL; // By disabling the task, the package is send
 }
 
 
 void stopPTXTx()
 {
-	// check if drone is even number
+  // check if drone is even number
   //  if(drone_id%2 ==0)
-	//if(drone_id !=16 )
-	//{
-	    esbSetChannel(drone_id*10);
+  //if(drone_id !=16 )
+  //{
+  esbSetChannel(drone_id * 10);
 //}else
-	//{
-	 //   esbSetChannel(100);
+  //{
+  //   esbSetChannel(100);
 
-	//}
-    //esbSetChannel(drone_id);
+  //}
+  //esbSetChannel(drone_id);
 
 //    else{
-    	// Uneven numbers go to the channel under (2 drones per channel: 20 40 60 80)
- //   	esbSetChannel((drone_id-1)*10);
- //   }
-	// Go back to RX mode
-	setupRx();
+  // Uneven numbers go to the channel under (2 drones per channel: 20 40 60 80)
+//     esbSetChannel((drone_id-1)*10);
+//   }
+  // Go back to RX mode
+  setupRx();
 }
 
 void RADIO_IRQHandler()
@@ -274,104 +273,102 @@ void esbInterruptHandler()
   EsbPacket *pk;
 
   if (NRF_RADIO->EVENTS_END) {
-	  NRF_RADIO->EVENTS_END = 0UL;
+    NRF_RADIO->EVENTS_END = 0UL;
 
-    switch (rs){
-    case doRx:
-
-
-/*
-        if((pk->size >= 4) && (pk->data[0]&0xf3) == 0xf3 && (pk->data[1]==0x03)&&pk->data[2]==0x08)
-          {
-              // Change radio channel, addres and/or power as commanded from groundstation
-
-           // handleRadioCmd(packet);
-      	  beacon_rssi = pk->rssi;
-
-          }
-*/
+    switch (rs) {
+      case doRx:
 
 
+        /*
+                if((pk->size >= 4) && (pk->data[0]&0xf3) == 0xf3 && (pk->data[1]==0x03)&&pk->data[2]==0x08)
+                  {
+                      // Change radio channel, addres and/or power as commanded from groundstation
 
-      //Wrong CRC packet are dropped
-      if (!NRF_RADIO->CRCSTATUS) {
-        NRF_RADIO->TASKS_START = 1UL;
+                   // handleRadioCmd(packet);
+                  beacon_rssi = pk->rssi;
 
-        return;
-      }
+                  }
+        */
 
-      //TODO: handle inter rssi directly here!
 
-      pk = &rxPackets[rxq_head];
-      pk->rssi = (uint8_t) NRF_RADIO->RSSISAMPLE;
-      pk->crc = NRF_RADIO->RXCRC;
-      pk->match = NRF_RADIO->RXMATCH;
 
-      //if (pk->match == ESB_UNICAST_ADDRESS_MATCH||(pk->match == ESB_INTERDRONE_ADDRESS_MATCH&&pk->data[4]==231))
-     // if (pk->match == ESB_INTERDRONE_ADDRESS_MATCH&&pk->data[4]==231)
-      if (pk->match == ESB_UNICAST_ADDRESS_MATCH)
-      beacon_rssi = pk->rssi;
+        //Wrong CRC packet are dropped
+        if (!NRF_RADIO->CRCSTATUS) {
+          NRF_RADIO->TASKS_START = 1UL;
 
-      //TODO just a temporary fix, since the message is not synced with the right rssi value!!!
-      if (pk->match == ESB_INTERDRONE_ADDRESS_MATCH)
-      {
-    	  pk->data[2] =  pk->rssi;
-      }
-      // If no more space available on RX queue, drop packet!
-      if (((rxq_head+1)%RXQ_LEN) == rxq_tail) {
-        NRF_RADIO->TASKS_START = 1UL;
-        return;
-      }
-
-      // If this packet is a retry, send the same ACK again
-      if ((pk->match == ESB_UNICAST_ADDRESS_MATCH) && isRetry(pk)) {
-        setupTx(true);
-        return;
-      }
-
-      if ((pk->match == ESB_UNICAST_ADDRESS_MATCH))
-      {
-        // Match safeLink packet and answer it
-        if (pk->size == 3 && (pk->data[0]&0xf3) == 0xf3 && pk->data[1] == 0x05) {
-          has_safelink = pk->data[2];
-          memcpy(servicePacket.data, pk->data, 3);
-          servicePacket.size = 3;
-          setupTx(false);
-
-          // Reset packet counters
-          curr_down = 1;
-          curr_up = 1;
           return;
         }
 
-        // Good packet received, yea!
-        if (!has_safelink || (pk->data[0] & 0x08) != curr_up<<3) {
-          // Push the queue head to push this packet and prepare the next
-          rxq_head = ((rxq_head+1)%RXQ_LEN);
-          curr_up = 1-curr_up;
+        //TODO: handle inter rssi directly here!
+
+        pk = &rxPackets[rxq_head];
+        pk->rssi = (uint8_t) NRF_RADIO->RSSISAMPLE;
+        pk->crc = NRF_RADIO->RXCRC;
+        pk->match = NRF_RADIO->RXMATCH;
+
+        //if (pk->match == ESB_UNICAST_ADDRESS_MATCH||(pk->match == ESB_INTERDRONE_ADDRESS_MATCH&&pk->data[4]==231))
+        // if (pk->match == ESB_INTERDRONE_ADDRESS_MATCH&&pk->data[4]==231)
+        if (pk->match == ESB_UNICAST_ADDRESS_MATCH) {
+          beacon_rssi = pk->rssi;
         }
 
-        if (!has_safelink || (pk->data[0]&0x04) != curr_down<<2) {
-          curr_down = 1-curr_down;
-          setupTx(false);
-        } else {
+        //TODO just a temporary fix, since the message is not synced with the right rssi value!!!
+        if (pk->match == ESB_INTERDRONE_ADDRESS_MATCH) {
+          pk->data[2] =  pk->rssi;
+        }
+        // If no more space available on RX queue, drop packet!
+        if (((rxq_head + 1) % RXQ_LEN) == rxq_tail) {
+          NRF_RADIO->TASKS_START = 1UL;
+          return;
+        }
+
+        // If this packet is a retry, send the same ACK again
+        if ((pk->match == ESB_UNICAST_ADDRESS_MATCH) && isRetry(pk)) {
           setupTx(true);
+          return;
         }
-      } else
-      {
-        // Push the queue head to push this packet and prepare the next
-        rxq_head = ((rxq_head+1)%RXQ_LEN);
-        // broadcast => no ack
-        NRF_RADIO->PACKETPTR = (uint32_t)&rxPackets[rxq_head];
-        NRF_RADIO->TASKS_START = 1UL;
-      }
+
+        if ((pk->match == ESB_UNICAST_ADDRESS_MATCH)) {
+          // Match safeLink packet and answer it
+          if (pk->size == 3 && (pk->data[0] & 0xf3) == 0xf3 && pk->data[1] == 0x05) {
+            has_safelink = pk->data[2];
+            memcpy(servicePacket.data, pk->data, 3);
+            servicePacket.size = 3;
+            setupTx(false);
+
+            // Reset packet counters
+            curr_down = 1;
+            curr_up = 1;
+            return;
+          }
+
+          // Good packet received, yea!
+          if (!has_safelink || (pk->data[0] & 0x08) != curr_up << 3) {
+            // Push the queue head to push this packet and prepare the next
+            rxq_head = ((rxq_head + 1) % RXQ_LEN);
+            curr_up = 1 - curr_up;
+          }
+
+          if (!has_safelink || (pk->data[0] & 0x04) != curr_down << 2) {
+            curr_down = 1 - curr_down;
+            setupTx(false);
+          } else {
+            setupTx(true);
+          }
+        } else {
+          // Push the queue head to push this packet and prepare the next
+          rxq_head = ((rxq_head + 1) % RXQ_LEN);
+          // broadcast => no ack
+          NRF_RADIO->PACKETPTR = (uint32_t)&rxPackets[rxq_head];
+          NRF_RADIO->TASKS_START = 1UL;
+        }
 
 
-      break;
-    case doTx:
-      //Setup RX for next packet
-      setupRx();
-      break;
+        break;
+      case doTx:
+        //Setup RX for next packet
+        setupRx();
+        break;
     }
   }
 }
@@ -408,13 +405,13 @@ void esbInit()
   NRF_RADIO->TXPOWER = (txpower << RADIO_TXPOWER_TXPOWER_Pos);
 
   switch (datarate) {
-  case esbDatarate250K:
+    case esbDatarate250K:
       NRF_RADIO->MODE = (RADIO_MODE_MODE_Nrf_250Kbit << RADIO_MODE_MODE_Pos);
       break;
-  case esbDatarate1M:
+    case esbDatarate1M:
       NRF_RADIO->MODE = (RADIO_MODE_MODE_Nrf_1Mbit << RADIO_MODE_MODE_Pos);
       break;
-  case esbDatarate2M:
+    case esbDatarate2M:
       NRF_RADIO->MODE = (RADIO_MODE_MODE_Nrf_2Mbit << RADIO_MODE_MODE_Pos);
       break;
   }
@@ -438,7 +435,7 @@ void esbInit()
   NRF_RADIO->BASE0   = bytewise_bitswap((uint32_t)address);  // Base address for prefix 0
   NRF_RADIO->BASE1   = 0xE7E7E7E7UL;  // Base address for prefix 1-7
   NRF_RADIO->TXADDRESS = 0x00UL;      // Set device address 0 to use when transmitting
-  NRF_RADIO->RXADDRESSES = (1<<0) | (1<<1) | (1<<2);    // Enable device address 0 and 1 to use which receiving
+  NRF_RADIO->RXADDRESSES = (1 << 0) | (1 << 1) | (1 << 2); // Enable device address 0 and 1 to use which receiving
 
   // Packet configuration
   NRF_RADIO->PCNF0 = (PACKET0_S1_SIZE << RADIO_PCNF0_S1LEN_Pos) |
@@ -446,11 +443,11 @@ void esbInit()
                      (PACKET0_PAYLOAD_SIZE << RADIO_PCNF0_LFLEN_Pos);
 
   // Packet configuration
-   NRF_RADIO->PCNF1 = (RADIO_PCNF1_WHITEEN_Disabled << RADIO_PCNF1_WHITEEN_Pos)    |
-                      (RADIO_PCNF1_ENDIAN_Big << RADIO_PCNF1_ENDIAN_Pos)           |
-                      (PACKET1_BASE_ADDRESS_LENGTH << RADIO_PCNF1_BALEN_Pos)       |
-                      (PACKET1_STATIC_LENGTH << RADIO_PCNF1_STATLEN_Pos)           |
-                      (PACKET1_PAYLOAD_SIZE << RADIO_PCNF1_MAXLEN_Pos);
+  NRF_RADIO->PCNF1 = (RADIO_PCNF1_WHITEEN_Disabled << RADIO_PCNF1_WHITEEN_Pos)    |
+                     (RADIO_PCNF1_ENDIAN_Big << RADIO_PCNF1_ENDIAN_Pos)           |
+                     (PACKET1_BASE_ADDRESS_LENGTH << RADIO_PCNF1_BALEN_Pos)       |
+                     (PACKET1_STATIC_LENGTH << RADIO_PCNF1_STATLEN_Pos)           |
+                     (PACKET1_PAYLOAD_SIZE << RADIO_PCNF1_MAXLEN_Pos);
 
   // CRC Config
   NRF_RADIO->CRCCNF = (RADIO_CRCCNF_LEN_Two << RADIO_CRCCNF_LEN_Pos); // Number of checksum bits
@@ -468,7 +465,7 @@ void esbInit()
 
   // Set RX buffer and start RX
   rs = doRx;
-	NRF_RADIO->PACKETPTR = (uint32_t)&rxPackets[rxq_head];
+  NRF_RADIO->PACKETPTR = (uint32_t)&rxPackets[rxq_head];
   NRF_RADIO->TASKS_RXEN = 1U;
 
   isInit = true;
@@ -476,7 +473,7 @@ void esbInit()
 
 void esbReset()
 {
-  if (!isInit) return;
+  if (!isInit) { return; }
 #ifndef BLE
   __disable_irq();
 #endif
@@ -507,7 +504,7 @@ bool esbIsRxPacket()
   return (rxq_head != rxq_tail);
 }
 
-EsbPacket * esbGetRxPacket()
+EsbPacket *esbGetRxPacket()
 {
   EsbPacket *pk = NULL;
 
@@ -520,15 +517,15 @@ EsbPacket * esbGetRxPacket()
 
 void esbReleaseRxPacket()
 {
-  rxq_tail = (rxq_tail+1)%RXQ_LEN;
+  rxq_tail = (rxq_tail + 1) % RXQ_LEN;
 }
 
 bool esbCanTxPacket()
 {
-  return ((txq_head+1)%TXQ_LEN)!=txq_tail;
+  return ((txq_head + 1) % TXQ_LEN) != txq_tail;
 }
 
-EsbPacket * esbGetTxPacket()
+EsbPacket *esbGetTxPacket()
 {
   EsbPacket *pk = NULL;
 
@@ -541,7 +538,7 @@ EsbPacket * esbGetTxPacket()
 
 void esbSendTxPacket()
 {
-  txq_head = (txq_head+1)%TXQ_LEN;
+  txq_head = (txq_head + 1) % TXQ_LEN;
 }
 
 void esbSetDatarate(EsbDatarate dr)
@@ -560,10 +557,11 @@ void esbSetContwave(bool enable)
   contwave = enable;
 
 #ifdef BLE
-  if (enable)
+  if (enable) {
     ble_advertising_stop();
-  else
+  } else {
     advertising_start();
+  }
 #endif
 
 
@@ -573,8 +571,8 @@ void esbSetContwave(bool enable)
 void esbSetChannel(unsigned int ch)
 {
   if (channel < 126) {
-	  channel = ch;
-	}
+    channel = ch;
+  }
 
   esbReset();
 }
@@ -588,7 +586,7 @@ void esbSetTxPower(int power)
 
 void esbSetTxPowerDbm(int8_t powerDbm)
 {
-  if      (powerDbm <= -30) { txpower = RADIO_TXPOWER_TXPOWER_Neg30dBm; }
+  if (powerDbm <= -30) { txpower = RADIO_TXPOWER_TXPOWER_Neg30dBm; }
   else if (powerDbm <= -20) { txpower = RADIO_TXPOWER_TXPOWER_Neg20dBm; }
   else if (powerDbm <= -16) { txpower = RADIO_TXPOWER_TXPOWER_Neg16dBm; }
   else if (powerDbm <= -12) { txpower = RADIO_TXPOWER_TXPOWER_Neg12dBm; }

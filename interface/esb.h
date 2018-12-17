@@ -117,5 +117,6 @@ void setupRx();
 // functions for PTX mode
 void setupPTXTx(unsigned int ch, float rssi_angle_gbug);
 void stopPTXTx();
+void sendPTXagian();
 
 #endif //__ESB_H__
