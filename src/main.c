@@ -125,7 +125,8 @@ int main()
 
   esbSetDatarate(DEFAULT_RADIO_RATE);
   esbSetChannel(DEFAULT_RADIO_CHANNEL);
-#endif  esbSetChannel(drone_id*10);
+#endif
+  esbSetChannel(drone_id*10);
 
   mainloop();
 
@@ -182,7 +183,7 @@ void mainloop()
 
   static uint8_t rssi_array_other_drones[9] = {150, 150, 150, 150, 150, 150, 150, 150, 150};
   static unsigned int time_array_other_drones[9] = {0};
-  static unsigned int channels_other_drones[4] = {40, 50, 60, 70};
+  static unsigned int channels_other_drones[8] = {20, 30, 40, 50, 60, 70, 80, 90};
   int number_of_channels = sizeof(channels_other_drones) / sizeof(unsigned int);
   static count_switch_channel = 0;
   static uint8_t state_gbug = 0;
@@ -191,6 +192,10 @@ void mainloop()
   static float rssi_angle_other_drone = 0;
   static float rssi_angle_array_other_drones[9] = {500.0f};
   static unsigned int time_beacon_rssi = 0;
+
+  static uint8_t drone_id_other=0;
+
+  static uint8_t send_to_number = 0;
 
 
   while (1) {
@@ -230,21 +235,20 @@ void mainloop()
       // Turn off LED if interdrone address has been encountered (for debugging)
       if (interdrone == true) {
         inter_rssi = packet->data[2];
-        int drone_id = packet->data[4];
+        drone_id_other = packet->data[4];
         inter_beacon_rssi = packet->data[3];
 
         memcpy(&rssi_angle_other_drone, &packet->data[5], sizeof(float));
-
         // exception for drones that don't have a defined ID
-        if (drone_id == 231) {
+        if (drone_id_other == 231) {
           // rssi = packet->rssi;
           rssi_array_other_drones[0] = inter_rssi;
           time_array_other_drones[0] = systickGetTick();
           rssi_angle_array_other_drones[0] = rssi_angle_other_drone;
         } else {
-          rssi_array_other_drones[drone_id] = inter_rssi;
-          time_array_other_drones[drone_id] = systickGetTick();
-          rssi_angle_array_other_drones[drone_id] = rssi_angle_other_drone;
+          rssi_array_other_drones[drone_id_other] = inter_rssi;
+          time_array_other_drones[drone_id_other] = systickGetTick();
+          rssi_angle_array_other_drones[drone_id_other] = rssi_angle_other_drone;
 
         }
         LED_OFF();
@@ -390,7 +394,8 @@ void mainloop()
         case SYSLINK_GRADIENT_BUG:
           if (slRxPacket.length > 0) {
             state_gbug = slRxPacket.data[0];
-            memcpy(&rssi_angle_gbug, slRxPacket.data + 1, sizeof(float));
+            send_to_number =slRxPacket.data[1];
+            memcpy(&rssi_angle_gbug, slRxPacket.data + 2, sizeof(float));
           }
           break;
       }
@@ -470,26 +475,35 @@ void mainloop()
       if (!(state_gbug == 0||state_gbug==10||rssi==130)) {
         if (inBootloaderMode == false) {
           // After 1000 ticks Start going into TX mode
-          if (in_ptx == false && systickGetTick() >= radioPTXSendTime + (200 + drone_id * 2 + 1)) {
+          if (in_ptx == false && systickGetTick() >= radioPTXSendTime + (30 + drone_id * 2 + 1)) {
             LED_OFF();
             radioPTXSendTime = systickGetTick();
             radioPTXtoPRXSendTime = radioPTXSendTime;
-            if (channels_other_drones[count_switch_channel % number_of_channels] > drone_id * 10) {
-              setupPTXTx(channels_other_drones[count_switch_channel % number_of_channels], rssi_angle_gbug);
+            //  NEW solution Controlled by python script!
+            if ((drone_id+send_to_number)<10&&send_to_number!=0)
+            {
+              setupPTXTx((drone_id+send_to_number)*10, rssi_angle_gbug);
               in_ptx = true;
             } else {
               in_ptx = false;
             }
 
-            count_switch_channel ++;
+            // OLD solution
+/*            if (channels_other_drones[count_switch_channel % number_of_channels] > drone_id * 10) {
+              setupPTXTx(channels_other_drones[count_switch_channel % number_of_channels], rssi_angle_gbug);
+              in_ptx = true;
+            } else {
+              in_ptx = false;
+            }*/
+
             //stopPTXTx();
             //LED_ON();
-
           }
 
           // Indicate by the LEDS if something is send
           // TODO: find in broadcast (in_ptx), the NRF chip keeps sending messages.
-          if (in_ptx) {sendPTXagian(); LED_OFF();} else { LED_ON(); }
+          if (in_ptx) {//sendPTXagian();
+        	  LED_OFF();} else { LED_ON(); }
 
           // After 10 ticks, go back to business as usual
           if (in_ptx == true && systickGetTick() >= radioPTXtoPRXSendTime + 1) {
