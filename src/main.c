@@ -67,7 +67,7 @@ static void mainloop(void);
 #undef BLE
 #endif
 
-#define ISPTX
+//#define ISPTX
 static bool inBootloaderMode = false;
 //uint8_t beacon_rssi =44;
 
@@ -470,12 +470,16 @@ void mainloop()
 #ifdef ISPTX
       // if in PTX mode, send a message which lasts for 10 ms
       // TODO find out why it doesn't allow connection anymore with the dongle in ISPTX mode
-
+       if(rssi==130 && in_ptx)
+       {
+           stopPTXTx();
+    	   in_ptx = false;
+       }
       // Don't send anything if state is in start(0) or made it(10), or that the rssi hasn't been received
       if (!(state_gbug == 0||state_gbug==10||rssi==130)) {
         if (inBootloaderMode == false) {
           // After 1000 ticks Start going into TX mode
-          if (in_ptx == false && systickGetTick() >= radioPTXSendTime + (30 + drone_id * 2 + 1)) {
+          if (in_ptx == false && systickGetTick() >= radioPTXSendTime + (300 + drone_id * 2 + 1)) {
             LED_OFF();
             radioPTXSendTime = systickGetTick();
             radioPTXtoPRXSendTime = radioPTXSendTime;
@@ -512,6 +516,8 @@ void mainloop()
           }
         }
       }
+
+
 #endif
 
 
